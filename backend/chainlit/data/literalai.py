@@ -5,6 +5,7 @@ import aiofiles
 from chainlit.data.base import BaseDataLayer
 from chainlit.data.utils import queue_until_user_message
 from chainlit.logger import logger
+from chainlit.step import Step
 from chainlit.types import (
     Feedback,
     PageInfo,
@@ -15,7 +16,7 @@ from chainlit.types import (
 )
 from chainlit.user import PersistedUser, User
 from httpx import HTTPStatusError, RequestError
-from literalai import Attachment
+from literalai import Attachment, Thread as LiteralThread
 from literalai import Score as LiteralScore
 from literalai import Step as LiteralStep
 from literalai.observability.filter import threads_filters as LiteralThreadsFilters
@@ -29,86 +30,93 @@ if TYPE_CHECKING:
 _data_layer: Optional[BaseDataLayer] = None
 
 
+def _literalscore_to_chainlit_feedbackdict(
+    score: Optional[LiteralScore],
+) -> "Optional[FeedbackDict]":
+    if not score:
+        return None
+    return {
+        "id": score.id or "",
+        "forId": score.step_id or "",
+        "value": cast(Literal[0, 1], score.value),
+        "comment": score.comment,
+    }
+
+
+def _literal_step_to_chainlit_stepdict(step: LiteralStep) -> "StepDict":
+    metadata = step.metadata or {}
+    input = (step.input or {}).get("content") or (
+        json.dumps(step.input) if step.input and step.input != {} else ""
+    )
+    output = (step.output or {}).get("content") or (
+        json.dumps(step.output) if step.output and step.output != {} else ""
+    )
+
+    user_feedback = (
+        next(
+            (s for s in step.scores if s.type == "HUMAN" and s.name == "user-feedback"),
+            None,
+        )
+        if step.scores
+        else None
+    )
+
+    return {
+        "createdAt": step.created_at,
+        "id": step.id or "",
+        "threadId": step.thread_id or "",
+        "parentId": step.parent_id,
+        "feedback": _literalscore_to_chainlit_feedbackdict(user_feedback),
+        "start": step.start_time,
+        "end": step.end_time,
+        "type": step.type or "undefined",
+        "name": step.name or "",
+        "generation": step.generation.to_dict() if step.generation else None,
+        "input": input,
+        "output": output,
+        "showInput": metadata.get("showInput", False),
+        "indent": metadata.get("indent"),
+        "language": metadata.get("language"),
+        "isError": bool(step.error),
+        "waitForAnswer": metadata.get("waitForAnswer", False),
+    }
+
+
+def _literalai_attachment_to_elementdict(attachment: Attachment) -> ElementDict:
+    metadata = attachment.metadata or {}
+    return {
+        "chainlitKey": None,
+        "display": metadata.get("display", "side"),
+        "language": metadata.get("language"),
+        "autoPlay": metadata.get("autoPlay", None),
+        "playerConfig": metadata.get("playerConfig", None),
+        "page": metadata.get("page"),
+        "size": metadata.get("size"),
+        "type": metadata.get("type", "file"),
+        "forId": attachment.step_id,
+        "id": attachment.id or "",
+        "mime": attachment.mime,
+        "name": attachment.name or "",
+        "objectKey": attachment.object_key,
+        "url": attachment.url,
+        "threadId": attachment.thread_id,
+    }
+
+
+def _literal_step_to_chainlit_step(step: LiteralStep) -> Step:
+    raise NotImplementedError()
+
+
+def _literal_thread_to_chainlit_threaddict(thread: LiteralThread) -> ThreadDict:
+    raise NotImplementedError()
+
+
 class LiteralDataLayer(BaseDataLayer):
     def __init__(self, api_key: str, server: Optional[str]):
         from literalai import AsyncLiteralClient
 
         self.client = AsyncLiteralClient(api_key=api_key, url=server)
         logger.info("Chainlit data layer initialized")
-
-    def attachment_to_element_dict(self, attachment: Attachment) -> "ElementDict":
-        metadata = attachment.metadata or {}
-        return {
-            "chainlitKey": None,
-            "display": metadata.get("display", "side"),
-            "language": metadata.get("language"),
-            "autoPlay": metadata.get("autoPlay", None),
-            "playerConfig": metadata.get("playerConfig", None),
-            "page": metadata.get("page"),
-            "size": metadata.get("size"),
-            "type": metadata.get("type", "file"),
-            "forId": attachment.step_id,
-            "id": attachment.id or "",
-            "mime": attachment.mime,
-            "name": attachment.name or "",
-            "objectKey": attachment.object_key,
-            "url": attachment.url,
-            "threadId": attachment.thread_id,
-        }
-
-    def score_to_feedback_dict(
-        self, score: Optional[LiteralScore]
-    ) -> "Optional[FeedbackDict]":
-        if not score:
-            return None
-        return {
-            "id": score.id or "",
-            "forId": score.step_id or "",
-            "value": cast(Literal[0, 1], score.value),
-            "comment": score.comment,
-        }
-
-    def step_to_step_dict(self, step: LiteralStep) -> "StepDict":
-        metadata = step.metadata or {}
-        input = (step.input or {}).get("content") or (
-            json.dumps(step.input) if step.input and step.input != {} else ""
-        )
-        output = (step.output or {}).get("content") or (
-            json.dumps(step.output) if step.output and step.output != {} else ""
-        )
-
-        user_feedback = (
-            next(
-                (
-                    s
-                    for s in step.scores
-                    if s.type == "HUMAN" and s.name == "user-feedback"
-                ),
-                None,
-            )
-            if step.scores
-            else None
-        )
-
-        return {
-            "createdAt": step.created_at,
-            "id": step.id or "",
-            "threadId": step.thread_id or "",
-            "parentId": step.parent_id,
-            "feedback": self.score_to_feedback_dict(user_feedback),
-            "start": step.start_time,
-            "end": step.end_time,
-            "type": step.type or "undefined",
-            "name": step.name or "",
-            "generation": step.generation.to_dict() if step.generation else None,
-            "input": input,
-            "output": output,
-            "showInput": metadata.get("showInput", False),
-            "indent": metadata.get("indent"),
-            "language": metadata.get("language"),
-            "isError": bool(step.error),
-            "waitForAnswer": metadata.get("waitForAnswer", False),
-        }
 
     async def build_debug_url(self) -> str:
         try:
@@ -239,7 +247,7 @@ class LiteralDataLayer(BaseDataLayer):
         attachment = await self.client.api.get_attachment(id=element_id)
         if not attachment:
             return None
-        return self.attachment_to_element_dict(attachment)
+        return _literalai_attachment_to_elementdict(attachment)
 
     @queue_until_user_message()
     async def delete_element(self, element_id: str, thread_id: Optional[str] = None):
@@ -339,13 +347,18 @@ class LiteralDataLayer(BaseDataLayer):
             filters=literal_filters,
             order_by={"column": "createdAt", "direction": "DESC"},
         )
+
+        chainlit_threads = [
+            *map(_literal_thread_to_chainlit_threaddict, literal_response.data)
+        ]
+
         return PaginatedResponse(
             pageInfo=PageInfo(
-                hasNextPage=literal_response.pageInfo.hasNextPage,
-                startCursor=literal_response.pageInfo.startCursor,
-                endCursor=literal_response.pageInfo.endCursor,
+                hasNextPage=literal_response.page_info.has_next_page,
+                startCursor=literal_response.page_info.start_cursor,
+                endCursor=literal_response.page_info.end_cursor,
             ),
-            data=literal_response.data,
+            data=chainlit_threads,
         )
 
     async def get_thread(self, thread_id: str) -> "Optional[ThreadDict]":
@@ -359,12 +372,15 @@ class LiteralDataLayer(BaseDataLayer):
         if thread.steps:
             for step in thread.steps:
                 for attachment in step.attachments:
-                    elements.append(self.attachment_to_element_dict(attachment))
+                    elements.append(_literalai_attachment_to_elementdict(attachment))
 
-                if check_add_step_in_cot(step):
-                    steps.append(self.step_to_step_dict(step))
+                chainlit_step = _literal_step_to_chainlit_step(step)
+                if check_add_step_in_cot(chainlit_step):
+                    steps.append(
+                        _literal_step_to_chainlit_stepdict(step)
+                    )  # TODO: chainlit_step.to_dict()
                 else:
-                    steps.append(stub_step(step))
+                    steps.append(stub_step(chainlit_step))
 
         return {
             "createdAt": thread.created_at or "",
