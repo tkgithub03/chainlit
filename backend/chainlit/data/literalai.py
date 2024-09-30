@@ -30,121 +30,123 @@ if TYPE_CHECKING:
 _data_layer: Optional[BaseDataLayer] = None
 
 
-def _literalscore_to_chainlit_feedbackdict(
-    score: Optional[LiteralScore],
-) -> "Optional[FeedbackDict]":
-    if not score:
-        return None
-    return {
-        "id": score.id or "",
-        "forId": score.step_id or "",
-        "value": cast(Literal[0, 1], score.value),
-        "comment": score.comment,
-    }
+class LiteralToChainlitConverter:
+    @staticmethod
+    def literalscore_to_chainlit_feedbackdict(
+        score: Optional[LiteralScore],
+    ) -> "Optional[FeedbackDict]":
+        if not score:
+            return None
+        return {
+            "id": score.id or "",
+            "forId": score.step_id or "",
+            "value": cast(Literal[0, 1], score.value),
+            "comment": score.comment,
+        }
 
-
-def _literal_step_to_chainlit_stepdict(step: LiteralStep) -> "StepDict":
-    metadata = step.metadata or {}
-    input = (step.input or {}).get("content") or (
-        json.dumps(step.input) if step.input and step.input != {} else ""
-    )
-    output = (step.output or {}).get("content") or (
-        json.dumps(step.output) if step.output and step.output != {} else ""
-    )
-
-    user_feedback = (
-        next(
-            (s for s in step.scores if s.type == "HUMAN" and s.name == "user-feedback"),
-            None,
+    @staticmethod
+    def literal_step_to_chainlit_stepdict(step: LiteralStep) -> "StepDict":
+        metadata = step.metadata or {}
+        input = (step.input or {}).get("content") or (
+            json.dumps(step.input) if step.input and step.input != {} else ""
         )
-        if step.scores
-        else None
-    )
+        output = (step.output or {}).get("content") or (
+            json.dumps(step.output) if step.output and step.output != {} else ""
+        )
 
-    return {
-        "createdAt": step.created_at,
-        "id": step.id or "",
-        "threadId": step.thread_id or "",
-        "parentId": step.parent_id,
-        "feedback": _literalscore_to_chainlit_feedbackdict(user_feedback),
-        "start": step.start_time,
-        "end": step.end_time,
-        "type": step.type or "undefined",
-        "name": step.name or "",
-        "generation": step.generation.to_dict() if step.generation else None,
-        "input": input,
-        "output": output,
-        "showInput": metadata.get("showInput", False),
-        "indent": metadata.get("indent"),
-        "language": metadata.get("language"),
-        "isError": bool(step.error),
-        "waitForAnswer": metadata.get("waitForAnswer", False),
-    }
+        user_feedback = (
+            next(
+                (s for s in step.scores if s.type == "HUMAN" and s.name == "user-feedback"),
+                None,
+            )
+            if step.scores
+            else None
+        )
 
+        return {
+            "createdAt": step.created_at,
+            "id": step.id or "",
+            "threadId": step.thread_id or "",
+            "parentId": step.parent_id,
+            "feedback": LiteralToChainlitConverter.literalscore_to_chainlit_feedbackdict(user_feedback),
+            "start": step.start_time,
+            "end": step.end_time,
+            "type": step.type or "undefined",
+            "name": step.name or "",
+            "generation": step.generation.to_dict() if step.generation else None,
+            "input": input,
+            "output": output,
+            "showInput": metadata.get("showInput", False),
+            "indent": metadata.get("indent"),
+            "language": metadata.get("language"),
+            "isError": bool(step.error),
+            "waitForAnswer": metadata.get("waitForAnswer", False),
+        }
 
-def _literalai_attachment_to_elementdict(attachment: Attachment) -> ElementDict:
-    metadata = attachment.metadata or {}
-    return {
-        "chainlitKey": None,
-        "display": metadata.get("display", "side"),
-        "language": metadata.get("language"),
-        "autoPlay": metadata.get("autoPlay", None),
-        "playerConfig": metadata.get("playerConfig", None),
-        "page": metadata.get("page"),
-        "size": metadata.get("size"),
-        "type": metadata.get("type", "file"),
-        "forId": attachment.step_id,
-        "id": attachment.id or "",
-        "mime": attachment.mime,
-        "name": attachment.name or "",
-        "objectKey": attachment.object_key,
-        "url": attachment.url,
-        "threadId": attachment.thread_id,
-    }
+    @staticmethod
+    def literalai_attachment_to_elementdict(attachment: Attachment) -> ElementDict:
+        metadata = attachment.metadata or {}
+        return {
+            "chainlitKey": None,
+            "display": metadata.get("display", "side"),
+            "language": metadata.get("language"),
+            "autoPlay": metadata.get("autoPlay", None),
+            "playerConfig": metadata.get("playerConfig", None),
+            "page": metadata.get("page"),
+            "size": metadata.get("size"),
+            "type": metadata.get("type", "file"),
+            "forId": attachment.step_id,
+            "id": attachment.id or "",
+            "mime": attachment.mime,
+            "name": attachment.name or "",
+            "objectKey": attachment.object_key,
+            "url": attachment.url,
+            "threadId": attachment.thread_id,
+        }
 
+    @staticmethod
+    def literal_step_to_chainlit_step(step: LiteralStep) -> Step:
+        chainlit_step = Step(
+            name=step.name or "",
+            type=step.type or "undefined",
+            id=step.id,
+            parent_id=step.parent_id,
+        )
+        chainlit_step.thread_id = step.thread_id
+        chainlit_step.start = step.start_time
+        chainlit_step.end = step.end_time
+        chainlit_step.created_at = step.created_at
+        chainlit_step.input = step.input.get("content", "") if step.input else ""
+        chainlit_step.output = step.output.get("content", "") if step.output else ""
+        chainlit_step.is_error = bool(step.error)
+        chainlit_step.metadata = step.metadata or {}
+        chainlit_step.tags = step.tags
+        chainlit_step.generation = step.generation
+        
+        if step.attachments:
+            for attachment in step.attachments:
+                element = LiteralToChainlitConverter.literalai_attachment_to_elementdict(attachment)
+                chainlit_step.elements.append(element)
+        
+        return chainlit_step
 
-def _literal_step_to_chainlit_step(step: LiteralStep) -> Step:
-    chainlit_step = Step(
-        name=step.name or "",
-        type=step.type or "undefined",
-        id=step.id,
-        parent_id=step.parent_id,
-    )
-    chainlit_step.thread_id = step.thread_id
-    chainlit_step.start = step.start_time
-    chainlit_step.end = step.end_time
-    chainlit_step.created_at = step.created_at
-    chainlit_step.input = step.input.get("content", "") if step.input else ""
-    chainlit_step.output = step.output.get("content", "") if step.output else ""
-    chainlit_step.is_error = bool(step.error)
-    chainlit_step.metadata = step.metadata or {}
-    chainlit_step.tags = step.tags
-    chainlit_step.generation = step.generation
-    
-    if step.attachments:
-        for attachment in step.attachments:
-            element = _literalai_attachment_to_elementdict(attachment)
-            chainlit_step.elements.append(element)
-    
-    return chainlit_step
-
-
-def _literal_thread_to_chainlit_threaddict(thread: LiteralThread) -> ThreadDict:
-    return {
-        "id": thread.id,
-        "createdAt": thread.created_at or "",
-        "name": thread.name,
-        "userId": thread.participant_id,
-        "userIdentifier": thread.participant_identifier,
-        "tags": thread.tags,
-        "metadata": thread.metadata,
-        "steps": [_literal_step_to_chainlit_stepdict(step) for step in thread.steps] if thread.steps else [],
-        "elements": [
-            _literalai_attachment_to_elementdict(attachment)
-            for step in thread.steps
-            for attachment in step.attachments
-        ] if thread.steps else [],
-    }
+    @staticmethod
+    def literal_thread_to_chainlit_threaddict(thread: LiteralThread) -> ThreadDict:
+        return {
+            "id": thread.id,
+            "createdAt": thread.created_at or "",
+            "name": thread.name,
+            "userId": thread.participant_id,
+            "userIdentifier": thread.participant_identifier,
+            "tags": thread.tags,
+            "metadata": thread.metadata,
+            "steps": [LiteralToChainlitConverter.literal_step_to_chainlit_stepdict(step) for step in thread.steps] if thread.steps else [],
+            "elements": [
+                LiteralToChainlitConverter.literalai_attachment_to_elementdict(attachment)
+                for step in thread.steps
+                for attachment in step.attachments
+            ] if thread.steps else [],
+        }
 
 
 class LiteralDataLayer(BaseDataLayer):
@@ -283,7 +285,7 @@ class LiteralDataLayer(BaseDataLayer):
         attachment = await self.client.api.get_attachment(id=element_id)
         if not attachment:
             return None
-        return _literalai_attachment_to_elementdict(attachment)
+        return LiteralToChainlitConverter.literalai_attachment_to_elementdict(attachment)
 
     @queue_until_user_message()
     async def delete_element(self, element_id: str, thread_id: Optional[str] = None):
@@ -385,7 +387,7 @@ class LiteralDataLayer(BaseDataLayer):
         )
 
         chainlit_threads = [
-            *map(_literal_thread_to_chainlit_threaddict, literal_response.data)
+            *map(LiteralToChainlitConverter.literal_thread_to_chainlit_threaddict, literal_response.data)
         ]
 
         return PaginatedResponse(
@@ -410,10 +412,10 @@ class LiteralDataLayer(BaseDataLayer):
                 for attachment in step.attachments:
                     elements.append(_literalai_attachment_to_elementdict(attachment))
 
-                chainlit_step = _literal_step_to_chainlit_step(step)
+                chainlit_step = LiteralToChainlitConverter.literal_step_to_chainlit_step(step)
                 if check_add_step_in_cot(chainlit_step):
                     steps.append(
-                        _literal_step_to_chainlit_stepdict(step)
+                        LiteralToChainlitConverter.literal_step_to_chainlit_stepdict(step)
                     )  # TODO: chainlit_step.to_dict()
                 else:
                     steps.append(stub_step(chainlit_step))
