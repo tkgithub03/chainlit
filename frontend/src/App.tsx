@@ -42,6 +42,8 @@ declare global {
       light?: ThemOverride;
       dark?: ThemOverride;
     };
+    webkitSpeechRecognition: any;
+    webkitSpeechGrammarList: any;
   }
 }
 

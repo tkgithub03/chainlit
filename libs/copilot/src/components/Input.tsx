@@ -7,10 +7,11 @@ import { Box, IconButton, Stack, TextField } from '@mui/material';
 
 import { useTranslation } from '@chainlit/app/src/components/i18n/Translator';
 import { Attachments } from '@chainlit/app/src/components/molecules/attachments';
-import MicButton from '@chainlit/app/src/components/organisms/chat/inputBox/MicButton';
+// import MicButton from '@chainlit/app/src/components/organisms/chat/inputBox/MicButton';
+import MicButton2 from '@chainlit/app/src/components/organisms/chat/inputBox/MicButton/index2';
 import { SubmitButton } from '@chainlit/app/src/components/organisms/chat/inputBox/SubmitButton';
 import UploadButton from '@chainlit/app/src/components/organisms/chat/inputBox/UploadButton';
-import WaterMark from '@chainlit/app/src/components/organisms/chat/inputBox/waterMark';
+// import WaterMark from '@chainlit/app/src/components/organisms/chat/inputBox/waterMark';
 import { IAttachment, attachmentsState } from '@chainlit/app/src/state/chat';
 import { chatSettingsOpenState } from '@chainlit/app/src/state/project';
 import { inputHistoryState } from '@chainlit/app/src/state/userInputHistory';
@@ -209,11 +210,11 @@ const Input = memo(
                   <TuneIcon fontSize="small" />
                 </IconButton>
               )}
-              <MicButton disabled={disabled} />
+              <MicButton2 disabled={disabled} setValue={setValue} />
             </Stack>
-            <Box>
+            {/* <Box>
               <WaterMark />
-            </Box>
+            </Box> */}
           </Stack>
         </Stack>
       </>

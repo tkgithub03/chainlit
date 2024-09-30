@@ -11,6 +11,7 @@ import { useIsDarkMode } from 'hooks/useIsDarkMode';
 import { type IStep } from 'client-types/';
 
 import { DebugButton } from './DebugButton';
+import { ExportExcelButton } from './ExportExcelButton';
 import { FeedbackButtons } from './FeedbackButtons';
 
 interface Props {
@@ -36,6 +37,7 @@ const MessageButtons = ({ message, run }: Props) => {
   if (!show || message.streaming) {
     return null;
   }
+  console.log('MessageButtons', (message as any).metadata, run);
 
   return (
     <Stack
@@ -46,6 +48,12 @@ const MessageButtons = ({ message, run }: Props) => {
     >
       {showCopyButton ? <ClipboardCopy value={message.output} /> : null}
       {run ? <FeedbackButtons message={run} /> : null}
+      {showCopyButton ? (
+        <ExportExcelButton
+          value={message.output}
+          filename={(message as any).metadata?.filename || 'export'}
+        />
+      ) : null}
       {showDebugButton ? (
         <DebugButton debugUrl={config.debugUrl!} step={message} />
       ) : null}

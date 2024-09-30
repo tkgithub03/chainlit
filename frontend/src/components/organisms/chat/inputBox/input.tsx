@@ -16,7 +16,8 @@ import { IAttachment, attachmentsState } from 'state/chat';
 import { chatSettingsOpenState } from 'state/project';
 import { inputHistoryState } from 'state/userInputHistory';
 
-import MicButton from './MicButton';
+import MicButton2 from './MicButton/index2';
+// import MicButton from './MicButton';
 import { SubmitButton } from './SubmitButton';
 import UploadButton from './UploadButton';
 
@@ -164,7 +165,7 @@ const Input = memo(
             <TuneIcon />
           </IconButton>
         )}
-        <MicButton disabled={disabled} />
+        <MicButton2 disabled={disabled} setValue={setValue} />
       </>
     );
 
