@@ -764,10 +764,18 @@ async def test_update_step(
     )
 
 
-async def test_score_to_feedback_dict():
-    from literalai import Score as LiteralScore
+from literalai import Score as LiteralScore, Step as LiteralStep, Attachment
+from chainlit.step import Step, StepType
+from chainlit.element import Element, File, Image, Audio, Video, Text, Pdf
 
-    # Test with a valid score
+def test_steptype_to_steptype():
+    assert LiteralToChainlitConverter.steptype_to_steptype("user_message") == "undefined"
+    assert LiteralToChainlitConverter.steptype_to_steptype("assistant_message") == "undefined"
+    assert LiteralToChainlitConverter.steptype_to_steptype("system_message") == "undefined"
+    assert LiteralToChainlitConverter.steptype_to_steptype("tool") == "tool"
+    assert LiteralToChainlitConverter.steptype_to_steptype(None) == "undefined"
+
+def test_score_to_feedbackdict():
     score = LiteralScore(
         id="test_score_id",
         step_id="test_step_id",
@@ -786,19 +794,219 @@ async def test_score_to_feedback_dict():
         "comment": "Great job!",
     }
 
-    # Test with None score
     assert LiteralToChainlitConverter.score_to_feedbackdict(None) is None
 
-    # Test with score value 0
     score.value = 0
     feedback_dict = LiteralToChainlitConverter.score_to_feedbackdict(score)
     assert feedback_dict is not None
     assert feedback_dict["value"] == 0
 
-    # Test with missing id or step_id
     score.id = None
     score.step_id = None
     feedback_dict = LiteralToChainlitConverter.score_to_feedbackdict(score)
     assert feedback_dict is not None
     assert feedback_dict["id"] == ""
     assert feedback_dict["forId"] == ""
+
+def test_step_to_stepdict():
+    literal_step = LiteralStep(
+        id="test_step_id",
+        thread_id="test_thread_id",
+        type="user_message",
+        name="Test Step",
+        input={"content": "test input"},
+        output={"content": "test output"},
+        start_time="2023-01-01T00:00:00Z",
+        end_time="2023-01-01T00:00:01Z",
+        created_at="2023-01-01T00:00:00Z",
+        metadata={"showInput": True, "language": "en"},
+        error=None,
+        scores=[
+            LiteralScore(
+                id="test_score_id",
+                step_id="test_step_id",
+                value=1,
+                comment="Great job!",
+                name="user-feedback",
+                type="HUMAN",
+            )
+        ],
+    )
+
+    step_dict = LiteralToChainlitConverter.step_to_stepdict(literal_step)
+
+    assert step_dict["id"] == "test_step_id"
+    assert step_dict["threadId"] == "test_thread_id"
+    assert step_dict["type"] == "user_message"
+    assert step_dict["name"] == "Test Step"
+    assert step_dict["input"] == "test input"
+    assert step_dict["output"] == "test output"
+    assert step_dict["start"] == "2023-01-01T00:00:00Z"
+    assert step_dict["end"] == "2023-01-01T00:00:01Z"
+    assert step_dict["createdAt"] == "2023-01-01T00:00:00Z"
+    assert step_dict["showInput"] == True
+    assert step_dict["language"] == "en"
+    assert step_dict["isError"] == False
+    assert step_dict["feedback"] == {
+        "id": "test_score_id",
+        "forId": "test_step_id",
+        "value": 1,
+        "comment": "Great job!",
+    }
+
+def test_attachment_to_elementdict():
+    attachment = Attachment(
+        id="test_attachment_id",
+        step_id="test_step_id",
+        thread_id="test_thread_id",
+        name="test.txt",
+        mime="text/plain",
+        url="https://example.com/test.txt",
+        object_key="test_object_key",
+        metadata={"display": "side", "language": "python", "type": "file"},
+    )
+
+    element_dict = LiteralToChainlitConverter.attachment_to_elementdict(attachment)
+
+    assert element_dict["id"] == "test_attachment_id"
+    assert element_dict["forId"] == "test_step_id"
+    assert element_dict["threadId"] == "test_thread_id"
+    assert element_dict["name"] == "test.txt"
+    assert element_dict["mime"] == "text/plain"
+    assert element_dict["url"] == "https://example.com/test.txt"
+    assert element_dict["objectKey"] == "test_object_key"
+    assert element_dict["display"] == "side"
+    assert element_dict["language"] == "python"
+    assert element_dict["type"] == "file"
+
+def test_attachment_to_element():
+    attachment = Attachment(
+        id="test_attachment_id",
+        step_id="test_step_id",
+        thread_id="test_thread_id",
+        name="test.txt",
+        mime="text/plain",
+        url="https://example.com/test.txt",
+        object_key="test_object_key",
+        metadata={"display": "side", "language": "python", "type": "text"},
+    )
+
+    element = LiteralToChainlitConverter.attachment_to_element(attachment)
+
+    assert isinstance(element, Text)
+    assert element.id == "test_attachment_id"
+    assert element.for_id == "test_step_id"
+    assert element.thread_id == "test_thread_id"
+    assert element.name == "test.txt"
+    assert element.mime == "text/plain"
+    assert element.url == "https://example.com/test.txt"
+    assert element.object_key == "test_object_key"
+    assert element.display == "side"
+    assert element.language == "python"
+
+    # Test other element types
+    for element_type in ["file", "image", "audio", "video", "pdf"]:
+        attachment.metadata["type"] = element_type
+        element = LiteralToChainlitConverter.attachment_to_element(attachment)
+        assert isinstance(element, {
+            "file": File,
+            "image": Image,
+            "audio": Audio,
+            "video": Video,
+            "text": Text,
+            "pdf": Pdf
+        }[element_type])
+
+def test_step_to_step():
+    literal_step = LiteralStep(
+        id="test_step_id",
+        thread_id="test_thread_id",
+        type="user_message",
+        name="Test Step",
+        input={"content": "test input"},
+        output={"content": "test output"},
+        start_time="2023-01-01T00:00:00Z",
+        end_time="2023-01-01T00:00:01Z",
+        created_at="2023-01-01T00:00:00Z",
+        metadata={"showInput": True, "language": "en"},
+        error=None,
+        attachments=[
+            Attachment(
+                id="test_attachment_id",
+                step_id="test_step_id",
+                thread_id="test_thread_id",
+                name="test.txt",
+                mime="text/plain",
+                url="https://example.com/test.txt",
+                object_key="test_object_key",
+                metadata={"display": "side", "language": "python", "type": "text"},
+            )
+        ],
+    )
+
+    chainlit_step = LiteralToChainlitConverter.step_to_step(literal_step)
+
+    assert isinstance(chainlit_step, Step)
+    assert chainlit_step.id == "test_step_id"
+    assert chainlit_step.thread_id == "test_thread_id"
+    assert chainlit_step.type == "undefined"
+    assert chainlit_step.name == "Test Step"
+    assert chainlit_step.input == "test input"
+    assert chainlit_step.output == "test output"
+    assert chainlit_step.start == "2023-01-01T00:00:00Z"
+    assert chainlit_step.end == "2023-01-01T00:00:01Z"
+    assert chainlit_step.created_at == "2023-01-01T00:00:00Z"
+    assert chainlit_step.metadata == {"showInput": True, "language": "en"}
+    assert chainlit_step.is_error == False
+    assert len(chainlit_step.elements) == 1
+    assert isinstance(chainlit_step.elements[0], Text)
+
+def test_thread_to_threaddict():
+    literal_thread = LiteralThread(
+        id="test_thread_id",
+        name="Test Thread",
+        created_at="2023-01-01T00:00:00Z",
+        participant_id="test_user_id",
+        participant_identifier="test_user_identifier",
+        tags=["tag1", "tag2"],
+        metadata={"key": "value"},
+        steps=[
+            LiteralStep(
+                id="test_step_id",
+                thread_id="test_thread_id",
+                type="user_message",
+                name="Test Step",
+                input={"content": "test input"},
+                output={"content": "test output"},
+                start_time="2023-01-01T00:00:00Z",
+                end_time="2023-01-01T00:00:01Z",
+                created_at="2023-01-01T00:00:00Z",
+                metadata={"showInput": True, "language": "en"},
+                error=None,
+                attachments=[
+                    Attachment(
+                        id="test_attachment_id",
+                        step_id="test_step_id",
+                        thread_id="test_thread_id",
+                        name="test.txt",
+                        mime="text/plain",
+                        url="https://example.com/test.txt",
+                        object_key="test_object_key",
+                        metadata={"display": "side", "language": "python", "type": "text"},
+                    )
+                ],
+            )
+        ],
+    )
+
+    thread_dict = LiteralToChainlitConverter.thread_to_threaddict(literal_thread)
+
+    assert thread_dict["id"] == "test_thread_id"
+    assert thread_dict["name"] == "Test Thread"
+    assert thread_dict["createdAt"] == "2023-01-01T00:00:00Z"
+    assert thread_dict["userId"] == "test_user_id"
+    assert thread_dict["userIdentifier"] == "test_user_identifier"
+    assert thread_dict["tags"] == ["tag1", "tag2"]
+    assert thread_dict["metadata"] == {"key": "value"}
+    assert len(thread_dict["steps"]) == 1
+    assert len(thread_dict["elements"]) == 1
