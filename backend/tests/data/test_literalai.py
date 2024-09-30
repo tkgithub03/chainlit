@@ -5,7 +5,7 @@ from unittest.mock import ANY, AsyncMock, Mock, patch
 import pytest
 from httpx import HTTPStatusError, RequestError
 
-from literalai import AsyncLiteralClient
+from literalai import AsyncLiteralClient, PaginatedResponse, PageInfo, Thread
 from literalai import Step as LiteralStep
 from literalai import Thread as LiteralThread
 from literalai import User as LiteralUser
@@ -16,10 +16,7 @@ from chainlit.element import Text
 from chainlit.step import StepDict
 from chainlit.types import (
     Feedback,
-    PageInfo,
-    PaginatedResponse,
     Pagination,
-    ThreadDict,
     ThreadFilter,
 )
 from chainlit.user import PersistedUser, User
@@ -472,21 +469,19 @@ async def test_list_threads(
     test_filters: ThreadFilter,
     test_pagination: Pagination,
 ):
-    response = PaginatedResponse(
-        pageInfo=PageInfo(
-            hasNextPage=True, startCursor="start_cursor", endCursor="end_cursor"
+    response: PaginatedResponse[Thread] = PaginatedResponse(
+        page_info=PageInfo(
+            has_next_page=True, start_cursor="start_cursor", end_cursor="end_cursor"
         ),
         data=[
-            {
-                "id": "thread1",
-                "name": "Thread 1",
-                "createdAt": "2023-01-01T00:00:00Z",
-            },
-            {
-                "id": "thread2",
-                "name": "Thread 2",
-                "createdAt": "2023-01-02T00:00:00Z",
-            },
+            Thread(
+                id="thread1",
+                name="Thread 1",
+            ),
+            Thread(
+                id="thread2",
+                name="Thread 2",
+            ),
         ],
     )
 

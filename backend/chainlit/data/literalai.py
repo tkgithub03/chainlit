@@ -171,7 +171,7 @@ class LiteralToChainlitConverter:
     def thread_to_threaddict(cls, thread: LiteralThread) -> ThreadDict:
         return {
             "id": thread.id,
-            "createdAt": thread.created_at or "",
+            "createdAt": getattr(thread, "created_at", ""),
             "name": thread.name,
             "userId": thread.participant_id,
             "userIdentifier": thread.participant_identifier,
