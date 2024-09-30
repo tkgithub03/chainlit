@@ -878,7 +878,12 @@ def test_attachment_to_elementdict():
         mime="text/plain",
         url="https://example.com/test.txt",
         object_key="test_object_key",
-        metadata={"display": "side", "language": "python", "type": "file"},
+        metadata={
+            "display": "side",
+            "language": "python",
+            "type": "file",
+            "size": "large",
+        },
     )
 
     element_dict = LiteralToChainlitConverter.attachment_to_elementdict(attachment)
@@ -893,6 +898,7 @@ def test_attachment_to_elementdict():
     assert element_dict["display"] == "side"
     assert element_dict["language"] == "python"
     assert element_dict["type"] == "file"
+    assert element_dict["size"] == "large"
 
 
 def test_attachment_to_element():
@@ -904,7 +910,12 @@ def test_attachment_to_element():
         mime="text/plain",
         url="https://example.com/test.txt",
         object_key="test_object_key",
-        metadata={"display": "side", "language": "python", "type": "text"},
+        metadata={
+            "display": "side",
+            "language": "python",
+            "type": "text",
+            "size": "small",
+        },
     )
 
     element = LiteralToChainlitConverter.attachment_to_element(attachment)
@@ -919,10 +930,12 @@ def test_attachment_to_element():
     assert element.object_key == "test_object_key"
     assert element.display == "side"
     assert element.language == "python"
+    assert element.size == "small"
 
     # Test other element types
     for element_type in ["file", "image", "audio", "video", "pdf"]:
-        attachment.metadata = {"type": element_type}
+        attachment.metadata = {"type": element_type, "size": "small"}
+
         element = LiteralToChainlitConverter.attachment_to_element(attachment)
         assert isinstance(
             element,
