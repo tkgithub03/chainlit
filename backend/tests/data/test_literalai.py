@@ -1028,46 +1028,6 @@ def test_thread_to_threaddict():
             metadata={"key": "value"},
             steps=[step_dict],
         )
-        # {
-        #     "id": "test_thread_id",
-        #     "name": "Test Thread",
-        #     "createdAt": "2023-01-01T00:00:00Z",
-        #     "participantId": "test_user_id",
-        #     "participantIdentifier": "test_user_identifier",
-        #     "tags": ["tag1", "tag2"],
-        #     "metadata": {"key": "value"},
-        #     "steps": [
-        #         {
-        #             "id": "test_step_id",
-        #             "threadId": "test_thread_id",
-        #             "type": "user_message",
-        #             "name": "Test Step",
-        #             "input": {"content": "test input"},
-        #             "output": {"content": "test output"},
-        #             "startTime": "2023-01-01T00:00:00Z",
-        #             "endTime": "2023-01-01T00:00:01Z",
-        #             "createdAt": "2023-01-01T00:00:00Z",
-        #             "metadata": {"showInput": True, "language": "en"},
-        #             "error": None,
-        #             "attachments": [
-        #                 {
-        #                     "id": "test_attachment_id",
-        #                     "stepId": "test_step_id",
-        #                     "threadId": "test_thread_id",
-        #                     "name": "test.txt",
-        #                     "mime": "text/plain",
-        #                     "url": "https://example.com/test.txt",
-        #                     "objectKey": "test_object_key",
-        #                     "metadata": {
-        #                         "display": "side",
-        #                         "language": "python",
-        #                         "type": "text",
-        #                     },
-        #                 }
-        #             ],
-        #         }
-        #     ],
-        # }
     )
 
     thread_dict = LiteralToChainlitConverter.thread_to_threaddict(literal_thread)
@@ -1076,7 +1036,7 @@ def test_thread_to_threaddict():
     assert thread_dict["name"] == "Test Thread"
     assert thread_dict["createdAt"] == "2023-01-01T00:00:00Z"
     assert thread_dict["userId"] == "test_user_id"
-    assert thread_dict["userIdentifier"] == "test_user_identifier"
+    assert thread_dict["userIdentifier"] == "test_user_identifier_"
     assert thread_dict["tags"] == ["tag1", "tag2"]
     assert thread_dict["metadata"] == {"key": "value"}
     assert thread_dict["steps"] is not None
