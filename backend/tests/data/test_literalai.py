@@ -9,11 +9,13 @@ from literalai import AsyncLiteralClient, PaginatedResponse, PageInfo, Thread
 from literalai import Step as LiteralStep
 from literalai import Thread as LiteralThread
 from literalai import User as LiteralUser
+from literalai import Score as LiteralScore
+from literalai import Attachment
 from literalai.api import AsyncLiteralAPI
 
 from chainlit.data.literalai import LiteralDataLayer, LiteralToChainlitConverter
-from chainlit.element import Text
-from chainlit.step import StepDict
+from chainlit.element import Text, Element, File, Image, Audio, Video, Pdf
+from chainlit.step import StepDict, Step, StepType
 from chainlit.types import (
     Feedback,
     Pagination,
