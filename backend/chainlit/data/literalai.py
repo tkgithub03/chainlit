@@ -104,11 +104,46 @@ def _literalai_attachment_to_elementdict(attachment: Attachment) -> ElementDict:
 
 
 def _literal_step_to_chainlit_step(step: LiteralStep) -> Step:
-    raise NotImplementedError()
+    chainlit_step = Step(
+        name=step.name or "",
+        type=step.type or "undefined",
+        id=step.id,
+        parent_id=step.parent_id,
+        thread_id=step.thread_id,
+    )
+    chainlit_step.start = step.start_time
+    chainlit_step.end = step.end_time
+    chainlit_step.created_at = step.created_at
+    chainlit_step.input = step.input.get("content", "") if step.input else ""
+    chainlit_step.output = step.output.get("content", "") if step.output else ""
+    chainlit_step.is_error = bool(step.error)
+    chainlit_step.metadata = step.metadata or {}
+    chainlit_step.tags = step.tags
+    chainlit_step.generation = step.generation
+    chainlit_step.elements = [
+        _literalai_attachment_to_elementdict(attachment)
+        for attachment in step.attachments
+    ] if step.attachments else []
+    
+    return chainlit_step
 
 
 def _literal_thread_to_chainlit_threaddict(thread: LiteralThread) -> ThreadDict:
-    raise NotImplementedError()
+    return {
+        "id": thread.id,
+        "createdAt": thread.created_at or "",
+        "name": thread.name,
+        "userId": thread.participant_id,
+        "userIdentifier": thread.participant_identifier,
+        "tags": thread.tags,
+        "metadata": thread.metadata,
+        "steps": [_literal_step_to_chainlit_stepdict(step) for step in thread.steps] if thread.steps else [],
+        "elements": [
+            _literalai_attachment_to_elementdict(attachment)
+            for step in thread.steps
+            for attachment in step.attachments
+        ] if thread.steps else [],
+    }
 
 
 class LiteralDataLayer(BaseDataLayer):
