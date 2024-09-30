@@ -15,19 +15,15 @@ from chainlit.types import (
     ThreadFilter,
 )
 from chainlit.user import PersistedUser, User
+from chainlit.element import Element, ElementDict
+from chainlit.step import FeedbackDict, StepDict
+
 from httpx import HTTPStatusError, RequestError
 from literalai import Attachment, Thread as LiteralThread
 from literalai import Score as LiteralScore
 from literalai import Step as LiteralStep
 from literalai.observability.filter import threads_filters as LiteralThreadsFilters
 from literalai.observability.step import StepDict as LiteralStepDict
-
-if TYPE_CHECKING:
-    from chainlit.element import Element, ElementDict
-    from chainlit.step import FeedbackDict, StepDict
-
-
-_data_layer: Optional[BaseDataLayer] = None
 
 
 class LiteralToChainlitConverter:
