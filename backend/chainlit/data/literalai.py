@@ -117,11 +117,22 @@ class LiteralToChainlitConverter:
 
     @classmethod
     def attachment_to_element(cls, attachment: Attachment) -> Element:
-        from chainlit.element import Element
+        from chainlit.element import Element, File, Image, Audio, Video, Text, Avatar, Pdf
 
         metadata = attachment.metadata or {}
-        element = Element(
-            type=metadata.get("type", "file"),
+        element_type = metadata.get("type", "file")
+        
+        element_class = {
+            "file": File,
+            "image": Image,
+            "audio": Audio,
+            "video": Video,
+            "text": Text,
+            "avatar": Avatar,
+            "pdf": Pdf
+        }.get(element_type, Element)
+
+        element = element_class(
             name=attachment.name or "",
             display=metadata.get("display", "side"),
             language=metadata.get("language"),
