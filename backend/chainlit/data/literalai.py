@@ -39,7 +39,8 @@ class LiteralToChainlitConverter:
 
     @classmethod
     def score_to_feedbackdict(
-        cls, score: Optional[LiteralScore],
+        cls,
+        score: Optional[LiteralScore],
     ) -> "Optional[FeedbackDict]":
         if not score:
             return None
@@ -115,6 +116,26 @@ class LiteralToChainlitConverter:
         }
 
     @classmethod
+    def attachment_to_element(cls, attachment: Attachment) -> Element:
+        from chainlit.element import Element
+
+        metadata = attachment.metadata or {}
+        element = Element(
+            type=metadata.get("type", "file"),
+            name=attachment.name or "",
+            display=metadata.get("display", "side"),
+            language=metadata.get("language"),
+            size=metadata.get("size"),
+            url=attachment.url,
+            mime=attachment.mime,
+        )
+        element.id = attachment.id or ""
+        element.for_id = attachment.step_id
+        element.thread_id = attachment.thread_id
+        element.object_key = attachment.object_key
+        return element
+
+    @classmethod
     def step_to_step(cls, step: LiteralStep) -> Step:
         chainlit_step = Step(
             name=step.name or "",
@@ -135,7 +156,7 @@ class LiteralToChainlitConverter:
 
         if step.attachments:
             chainlit_step.elements = [
-                cls.attachment_to_elementdict(attachment)
+                cls.attachment_to_element(attachment)
                 for attachment in step.attachments
             ]
 
@@ -151,10 +172,7 @@ class LiteralToChainlitConverter:
             "userIdentifier": thread.participant_identifier,
             "tags": thread.tags,
             "metadata": thread.metadata,
-            "steps": [
-                cls.step_to_stepdict(step)
-                for step in thread.steps
-            ]
+            "steps": [cls.step_to_stepdict(step) for step in thread.steps]
             if thread.steps
             else [],
             "elements": [
