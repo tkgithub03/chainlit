@@ -134,10 +134,10 @@ class LiteralToChainlitConverter:
             size=metadata.get("size"),
             url=attachment.url,
             mime=attachment.mime,
+            thread_id=attachment.thread_id,
         )
         element.id = attachment.id or ""
         element.for_id = attachment.step_id
-        element.thread_id = attachment.thread_id
         element.object_key = attachment.object_key
         return element
 
