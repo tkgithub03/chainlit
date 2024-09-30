@@ -32,7 +32,7 @@ _data_layer: Optional[BaseDataLayer] = None
 
 class LiteralToChainlitConverter:
     @staticmethod
-    def literalscore_to_chainlit_feedbackdict(
+    def score_to_feedbackdict(
         score: Optional[LiteralScore],
     ) -> "Optional[FeedbackDict]":
         if not score:
@@ -45,7 +45,7 @@ class LiteralToChainlitConverter:
         }
 
     @staticmethod
-    def literal_step_to_chainlit_stepdict(step: LiteralStep) -> "StepDict":
+    def step_to_stepdict(step: LiteralStep) -> "StepDict":
         metadata = step.metadata or {}
         input = (step.input or {}).get("content") or (
             json.dumps(step.input) if step.input and step.input != {} else ""
@@ -68,7 +68,7 @@ class LiteralToChainlitConverter:
             "id": step.id or "",
             "threadId": step.thread_id or "",
             "parentId": step.parent_id,
-            "feedback": LiteralToChainlitConverter.literalscore_to_chainlit_feedbackdict(user_feedback),
+            "feedback": LiteralToChainlitConverter.score_to_feedbackdict(user_feedback),
             "start": step.start_time,
             "end": step.end_time,
             "type": step.type or "undefined",
@@ -84,7 +84,7 @@ class LiteralToChainlitConverter:
         }
 
     @staticmethod
-    def literalai_attachment_to_elementdict(attachment: Attachment) -> ElementDict:
+    def attachment_to_elementdict(attachment: Attachment) -> ElementDict:
         metadata = attachment.metadata or {}
         return {
             "chainlitKey": None,
@@ -105,7 +105,7 @@ class LiteralToChainlitConverter:
         }
 
     @staticmethod
-    def literal_step_to_chainlit_step(step: LiteralStep) -> Step:
+    def step_to_step(step: LiteralStep) -> Step:
         chainlit_step = Step(
             name=step.name or "",
             type=step.type or "undefined",
@@ -125,13 +125,13 @@ class LiteralToChainlitConverter:
         
         if step.attachments:
             for attachment in step.attachments:
-                element = LiteralToChainlitConverter.literalai_attachment_to_elementdict(attachment)
+                element = LiteralToChainlitConverter.attachment_to_elementdict(attachment)
                 chainlit_step.elements.append(element)
         
         return chainlit_step
 
     @staticmethod
-    def literal_thread_to_chainlit_threaddict(thread: LiteralThread) -> ThreadDict:
+    def thread_to_threaddict(thread: LiteralThread) -> ThreadDict:
         return {
             "id": thread.id,
             "createdAt": thread.created_at or "",
@@ -140,9 +140,9 @@ class LiteralToChainlitConverter:
             "userIdentifier": thread.participant_identifier,
             "tags": thread.tags,
             "metadata": thread.metadata,
-            "steps": [LiteralToChainlitConverter.literal_step_to_chainlit_stepdict(step) for step in thread.steps] if thread.steps else [],
+            "steps": [LiteralToChainlitConverter.step_to_stepdict(step) for step in thread.steps] if thread.steps else [],
             "elements": [
-                LiteralToChainlitConverter.literalai_attachment_to_elementdict(attachment)
+                LiteralToChainlitConverter.attachment_to_elementdict(attachment)
                 for step in thread.steps
                 for attachment in step.attachments
             ] if thread.steps else [],
@@ -285,7 +285,7 @@ class LiteralDataLayer(BaseDataLayer):
         attachment = await self.client.api.get_attachment(id=element_id)
         if not attachment:
             return None
-        return LiteralToChainlitConverter.literalai_attachment_to_elementdict(attachment)
+        return LiteralToChainlitConverter.attachment_to_elementdict(attachment)
 
     @queue_until_user_message()
     async def delete_element(self, element_id: str, thread_id: Optional[str] = None):
@@ -387,7 +387,7 @@ class LiteralDataLayer(BaseDataLayer):
         )
 
         chainlit_threads = [
-            *map(LiteralToChainlitConverter.literal_thread_to_chainlit_threaddict, literal_response.data)
+            *map(LiteralToChainlitConverter.thread_to_threaddict, literal_response.data)
         ]
 
         return PaginatedResponse(
@@ -410,12 +410,12 @@ class LiteralDataLayer(BaseDataLayer):
         if thread.steps:
             for step in thread.steps:
                 for attachment in step.attachments:
-                    elements.append(LiteralToChainlitConverter.literalai_attachment_to_elementdict(attachment))
+                    elements.append(LiteralToChainlitConverter.attachment_to_elementdict(attachment))
 
-                chainlit_step = LiteralToChainlitConverter.literal_step_to_chainlit_step(step)
+                chainlit_step = LiteralToChainlitConverter.step_to_step(step)
                 if check_add_step_in_cot(chainlit_step):
                     steps.append(
-                        LiteralToChainlitConverter.literal_step_to_chainlit_stepdict(step)
+                        LiteralToChainlitConverter.step_to_stepdict(step)
                     )  # TODO: chainlit_step.to_dict()
                 else:
                     steps.append(stub_step(chainlit_step))
