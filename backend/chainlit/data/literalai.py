@@ -410,7 +410,7 @@ class LiteralDataLayer(BaseDataLayer):
         if thread.steps:
             for step in thread.steps:
                 for attachment in step.attachments:
-                    elements.append(_literalai_attachment_to_elementdict(attachment))
+                    elements.append(LiteralToChainlitConverter.literalai_attachment_to_elementdict(attachment))
 
                 chainlit_step = LiteralToChainlitConverter.literal_step_to_chainlit_step(step)
                 if check_add_step_in_cot(chainlit_step):
