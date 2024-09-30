@@ -5,7 +5,7 @@ import aiofiles
 from chainlit.data.base import BaseDataLayer
 from chainlit.data.utils import queue_until_user_message
 from chainlit.logger import logger
-from chainlit.step import Step
+from chainlit.step import Step, TrueStepType, StepType
 from chainlit.types import (
     Feedback,
     PageInfo,
@@ -31,6 +31,12 @@ _data_layer: Optional[BaseDataLayer] = None
 
 
 class LiteralToChainlitConverter:
+    @staticmethod
+    def steptype_to_steptype(step_type: Optional[StepType]) -> TrueStepType:
+        if step_type in ["user_message", "assistant_message", "system_message"]:
+            return "undefined"
+        return cast(TrueStepType, step_type or "undefined")
+
     @staticmethod
     def score_to_feedbackdict(
         score: Optional[LiteralScore],
@@ -112,11 +118,11 @@ class LiteralToChainlitConverter:
     def step_to_step(step: LiteralStep) -> Step:
         chainlit_step = Step(
             name=step.name or "",
-            type=step.type or "undefined",
+            type=LiteralToChainlitConverter.steptype_to_steptype(step.type),
             id=step.id,
             parent_id=step.parent_id,
         )
-        chainlit_step.thread_id = step.thread_id
+        chainlit_step.thread_id = step.thread_id or ""
         chainlit_step.start = step.start_time
         chainlit_step.end = step.end_time
         chainlit_step.created_at = step.created_at
@@ -128,11 +134,10 @@ class LiteralToChainlitConverter:
         chainlit_step.generation = step.generation
 
         if step.attachments:
-            for attachment in step.attachments:
-                element = LiteralToChainlitConverter.attachment_to_elementdict(
-                    attachment
-                )
-                chainlit_step.elements.append(element)
+            chainlit_step.elements = [
+                LiteralToChainlitConverter.attachment_to_elementdict(attachment)
+                for attachment in step.attachments
+            ]
 
         return chainlit_step
 
