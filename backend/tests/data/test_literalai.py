@@ -14,7 +14,14 @@ from literalai.api import AsyncLiteralAPI
 from chainlit.data.literalai import LiteralDataLayer, LiteralToChainlitConverter
 from chainlit.element import Text
 from chainlit.step import StepDict
-from chainlit.types import Feedback, Pagination, ThreadFilter
+from chainlit.types import (
+    Feedback,
+    PageInfo,
+    PaginatedResponse,
+    Pagination,
+    ThreadDict,
+    ThreadFilter,
+)
 from chainlit.user import PersistedUser, User
 
 
@@ -465,23 +472,25 @@ async def test_list_threads(
     test_filters: ThreadFilter,
     test_pagination: Pagination,
 ):
-    mock_response = Mock()
-    mock_response.pageInfo = Mock(
-        hasNextPage=True, startCursor="start_cursor", endCursor="end_cursor"
+    response = PaginatedResponse(
+        pageInfo=PageInfo(
+            hasNextPage=True, startCursor="start_cursor", endCursor="end_cursor"
+        ),
+        data=[
+            {
+                "id": "thread1",
+                "name": "Thread 1",
+                "createdAt": "2023-01-01T00:00:00Z",
+            },
+            {
+                "id": "thread2",
+                "name": "Thread 2",
+                "createdAt": "2023-01-02T00:00:00Z",
+            },
+        ],
     )
-    mock_response.data = [
-        {
-            "id": "thread1",
-            "name": "Thread 1",
-            "createdAt": "2023-01-01T00:00:00Z",
-        },
-        {
-            "id": "thread2",
-            "name": "Thread 2",
-            "createdAt": "2023-01-02T00:00:00Z",
-        },
-    ]
-    mock_literal_client.api.list_threads.return_value = mock_response
+
+    mock_literal_client.api.list_threads.return_value = response
 
     result = await literal_data_layer.list_threads(test_pagination, test_filters)
 
