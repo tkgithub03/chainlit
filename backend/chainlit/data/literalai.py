@@ -148,8 +148,8 @@ class LiteralToChainlitConverter:
             type=cls.steptype_to_steptype(step.type),
             id=step.id,
             parent_id=step.parent_id,
+            thread_id=step.thread_id or None,
         )
-        chainlit_step.thread_id = step.thread_id or ""
         chainlit_step.start = step.start_time
         chainlit_step.end = step.end_time
         chainlit_step.created_at = step.created_at
