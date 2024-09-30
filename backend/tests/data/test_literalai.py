@@ -831,25 +831,27 @@ def test_step_to_stepdict():
                 comment="Great job!",
                 name="user-feedback",
                 type="HUMAN",
+                dataset_experiment_item_id=None,
+                tags=None,
             )
         ],
     )
 
     step_dict = LiteralToChainlitConverter.step_to_stepdict(literal_step)
 
-    assert step_dict["id"] == "test_step_id"
-    assert step_dict["threadId"] == "test_thread_id"
-    assert step_dict["type"] == "user_message"
-    assert step_dict["name"] == "Test Step"
-    assert step_dict["input"] == "test input"
-    assert step_dict["output"] == "test output"
-    assert step_dict["start"] == "2023-01-01T00:00:00Z"
-    assert step_dict["end"] == "2023-01-01T00:00:01Z"
-    assert step_dict["createdAt"] == "2023-01-01T00:00:00Z"
-    assert step_dict["showInput"] == True
-    assert step_dict["language"] == "en"
-    assert step_dict["isError"] == False
-    assert step_dict["feedback"] == {
+    assert step_dict.get("id") == "test_step_id"
+    assert step_dict.get("threadId") == "test_thread_id"
+    assert step_dict.get("type") == "user_message"
+    assert step_dict.get("name") == "Test Step"
+    assert step_dict.get("input") == "test input"
+    assert step_dict.get("output") == "test output"
+    assert step_dict.get("start") == "2023-01-01T00:00:00Z"
+    assert step_dict.get("end") == "2023-01-01T00:00:01Z"
+    assert step_dict.get("createdAt") == "2023-01-01T00:00:00Z"
+    assert step_dict.get("showInput") == True
+    assert step_dict.get("language") == "en"
+    assert step_dict.get("isError") == False
+    assert step_dict.get("feedback") == {
         "id": "test_score_id",
         "forId": "test_step_id",
         "value": 1,
@@ -960,6 +962,7 @@ def test_step_to_step():
     assert chainlit_step.created_at == "2023-01-01T00:00:00Z"
     assert chainlit_step.metadata == {"showInput": True, "language": "en"}
     assert chainlit_step.is_error == False
+    assert chainlit_step.elements is not None
     assert len(chainlit_step.elements) == 1
     assert isinstance(chainlit_step.elements[0], Text)
 
@@ -1010,5 +1013,7 @@ def test_thread_to_threaddict():
     assert thread_dict["userIdentifier"] == "test_user_identifier"
     assert thread_dict["tags"] == ["tag1", "tag2"]
     assert thread_dict["metadata"] == {"key": "value"}
+    assert thread_dict["steps"] is not None
     assert len(thread_dict["steps"]) == 1
+    assert thread_dict["elements"] is not None
     assert len(thread_dict["elements"]) == 1
