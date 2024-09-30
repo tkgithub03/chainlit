@@ -109,8 +109,8 @@ def _literal_step_to_chainlit_step(step: LiteralStep) -> Step:
         type=step.type or "undefined",
         id=step.id,
         parent_id=step.parent_id,
-        thread_id=step.thread_id,
     )
+    chainlit_step.thread_id = step.thread_id
     chainlit_step.start = step.start_time
     chainlit_step.end = step.end_time
     chainlit_step.created_at = step.created_at
@@ -120,10 +120,11 @@ def _literal_step_to_chainlit_step(step: LiteralStep) -> Step:
     chainlit_step.metadata = step.metadata or {}
     chainlit_step.tags = step.tags
     chainlit_step.generation = step.generation
-    chainlit_step.elements = [
-        _literalai_attachment_to_elementdict(attachment)
-        for attachment in step.attachments
-    ] if step.attachments else []
+    
+    if step.attachments:
+        for attachment in step.attachments:
+            element = _literalai_attachment_to_elementdict(attachment)
+            chainlit_step.elements.append(element)
     
     return chainlit_step
 
