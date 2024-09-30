@@ -11,7 +11,7 @@ from literalai import Thread as LiteralThread
 from literalai import User as LiteralUser
 from literalai.api import AsyncLiteralAPI
 
-from chainlit.data.literalai import LiteralDataLayer
+from chainlit.data.literalai import LiteralDataLayer, LiteralToChainlitConverter
 from chainlit.element import Text
 from chainlit.step import StepDict
 from chainlit.types import Feedback, Pagination, ThreadFilter
@@ -760,7 +760,7 @@ async def test_update_step(
     )
 
 
-async def test_score_to_feedback_dict(literal_data_layer: LiteralDataLayer):
+async def test_score_to_feedback_dict():
     from literalai import Score as LiteralScore
 
     # Test with a valid score
@@ -774,7 +774,7 @@ async def test_score_to_feedback_dict(literal_data_layer: LiteralDataLayer):
         dataset_experiment_item_id=None,
         tags=None,
     )
-    feedback_dict = literal_data_layer.score_to_feedback_dict(score)
+    feedback_dict = LiteralToChainlitConverter.score_to_feedbackdict(score)
     assert feedback_dict == {
         "id": "test_score_id",
         "forId": "test_step_id",
@@ -783,18 +783,18 @@ async def test_score_to_feedback_dict(literal_data_layer: LiteralDataLayer):
     }
 
     # Test with None score
-    assert literal_data_layer.score_to_feedback_dict(None) is None
+    assert LiteralToChainlitConverter.score_to_feedbackdict(None) is None
 
     # Test with score value 0
     score.value = 0
-    feedback_dict = literal_data_layer.score_to_feedback_dict(score)
+    feedback_dict = LiteralToChainlitConverter.score_to_feedbackdict(score)
     assert feedback_dict is not None
     assert feedback_dict["value"] == 0
 
     # Test with missing id or step_id
     score.id = None
     score.step_id = None
-    feedback_dict = literal_data_layer.score_to_feedback_dict(score)
+    feedback_dict = LiteralToChainlitConverter.score_to_feedbackdict(score)
     assert feedback_dict is not None
     assert feedback_dict["id"] == ""
     assert feedback_dict["forId"] == ""
