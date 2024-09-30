@@ -31,15 +31,15 @@ _data_layer: Optional[BaseDataLayer] = None
 
 
 class LiteralToChainlitConverter:
-    @staticmethod
-    def steptype_to_steptype(step_type: Optional[StepType]) -> TrueStepType:
+    @classmethod
+    def steptype_to_steptype(cls, step_type: Optional[StepType]) -> TrueStepType:
         if step_type in ["user_message", "assistant_message", "system_message"]:
             return "undefined"
         return cast(TrueStepType, step_type or "undefined")
 
-    @staticmethod
+    @classmethod
     def score_to_feedbackdict(
-        score: Optional[LiteralScore],
+        cls, score: Optional[LiteralScore],
     ) -> "Optional[FeedbackDict]":
         if not score:
             return None
@@ -50,8 +50,8 @@ class LiteralToChainlitConverter:
             "comment": score.comment,
         }
 
-    @staticmethod
-    def step_to_stepdict(step: LiteralStep) -> "StepDict":
+    @classmethod
+    def step_to_stepdict(cls, step: LiteralStep) -> "StepDict":
         metadata = step.metadata or {}
         input = (step.input or {}).get("content") or (
             json.dumps(step.input) if step.input and step.input != {} else ""
@@ -78,7 +78,7 @@ class LiteralToChainlitConverter:
             "id": step.id or "",
             "threadId": step.thread_id or "",
             "parentId": step.parent_id,
-            "feedback": LiteralToChainlitConverter.score_to_feedbackdict(user_feedback),
+            "feedback": cls.score_to_feedbackdict(user_feedback),
             "start": step.start_time,
             "end": step.end_time,
             "type": step.type or "undefined",
@@ -93,8 +93,8 @@ class LiteralToChainlitConverter:
             "waitForAnswer": metadata.get("waitForAnswer", False),
         }
 
-    @staticmethod
-    def attachment_to_elementdict(attachment: Attachment) -> ElementDict:
+    @classmethod
+    def attachment_to_elementdict(cls, attachment: Attachment) -> ElementDict:
         metadata = attachment.metadata or {}
         return {
             "chainlitKey": None,
@@ -114,11 +114,11 @@ class LiteralToChainlitConverter:
             "threadId": attachment.thread_id,
         }
 
-    @staticmethod
-    def step_to_step(step: LiteralStep) -> Step:
+    @classmethod
+    def step_to_step(cls, step: LiteralStep) -> Step:
         chainlit_step = Step(
             name=step.name or "",
-            type=LiteralToChainlitConverter.steptype_to_steptype(step.type),
+            type=cls.steptype_to_steptype(step.type),
             id=step.id,
             parent_id=step.parent_id,
         )
@@ -135,14 +135,14 @@ class LiteralToChainlitConverter:
 
         if step.attachments:
             chainlit_step.elements = [
-                LiteralToChainlitConverter.attachment_to_elementdict(attachment)
+                cls.attachment_to_elementdict(attachment)
                 for attachment in step.attachments
             ]
 
         return chainlit_step
 
-    @staticmethod
-    def thread_to_threaddict(thread: LiteralThread) -> ThreadDict:
+    @classmethod
+    def thread_to_threaddict(cls, thread: LiteralThread) -> ThreadDict:
         return {
             "id": thread.id,
             "createdAt": thread.created_at or "",
@@ -152,13 +152,13 @@ class LiteralToChainlitConverter:
             "tags": thread.tags,
             "metadata": thread.metadata,
             "steps": [
-                LiteralToChainlitConverter.step_to_stepdict(step)
+                cls.step_to_stepdict(step)
                 for step in thread.steps
             ]
             if thread.steps
             else [],
             "elements": [
-                LiteralToChainlitConverter.attachment_to_elementdict(attachment)
+                cls.attachment_to_elementdict(attachment)
                 for step in thread.steps
                 for attachment in step.attachments
             ]
