@@ -56,7 +56,11 @@ class LiteralToChainlitConverter:
 
         user_feedback = (
             next(
-                (s for s in step.scores if s.type == "HUMAN" and s.name == "user-feedback"),
+                (
+                    s
+                    for s in step.scores
+                    if s.type == "HUMAN" and s.name == "user-feedback"
+                ),
                 None,
             )
             if step.scores
@@ -122,12 +126,14 @@ class LiteralToChainlitConverter:
         chainlit_step.metadata = step.metadata or {}
         chainlit_step.tags = step.tags
         chainlit_step.generation = step.generation
-        
+
         if step.attachments:
             for attachment in step.attachments:
-                element = LiteralToChainlitConverter.attachment_to_elementdict(attachment)
+                element = LiteralToChainlitConverter.attachment_to_elementdict(
+                    attachment
+                )
                 chainlit_step.elements.append(element)
-        
+
         return chainlit_step
 
     @staticmethod
@@ -140,12 +146,19 @@ class LiteralToChainlitConverter:
             "userIdentifier": thread.participant_identifier,
             "tags": thread.tags,
             "metadata": thread.metadata,
-            "steps": [LiteralToChainlitConverter.step_to_stepdict(step) for step in thread.steps] if thread.steps else [],
+            "steps": [
+                LiteralToChainlitConverter.step_to_stepdict(step)
+                for step in thread.steps
+            ]
+            if thread.steps
+            else [],
             "elements": [
                 LiteralToChainlitConverter.attachment_to_elementdict(attachment)
                 for step in thread.steps
                 for attachment in step.attachments
-            ] if thread.steps else [],
+            ]
+            if thread.steps
+            else [],
         }
 
 
@@ -410,7 +423,9 @@ class LiteralDataLayer(BaseDataLayer):
         if thread.steps:
             for step in thread.steps:
                 for attachment in step.attachments:
-                    elements.append(LiteralToChainlitConverter.attachment_to_elementdict(attachment))
+                    elements.append(
+                        LiteralToChainlitConverter.attachment_to_elementdict(attachment)
+                    )
 
                 chainlit_step = LiteralToChainlitConverter.step_to_step(step)
                 if check_add_step_in_cot(chainlit_step):
